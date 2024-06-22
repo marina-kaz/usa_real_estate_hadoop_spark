@@ -6,15 +6,15 @@ from pyspark.ml.regression import FMRegressor
 from pyspark.ml.evaluation import RegressionEvaluator
 from pyspark.ml.feature import StringIndexer, VectorAssembler, OneHotEncoder, StandardScaler
 from tap import Tap
-
+# import os
+from time import perf_counter
 import psutil
-from threading import Thread
-from time import time
 
 
 class CLI(Tap):
     log_prefix: str = "2nodes"
     optimized: bool = False
+
 
 def get_logger(prefix: str):
     logger = logging.getLogger(__name__)
@@ -34,6 +34,7 @@ def get_logger(prefix: str):
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)
     return logger
+
 
 def get_data(spark):
     data_path = "/opt/spark/data/usa_real_estate.csv"
@@ -55,7 +56,7 @@ def process_data(df):
 
 def train_model(df):
     train_data, test_data = df.randomSplit([0.8, 0.2], seed=42)
-    fm = FMRegressor(featuresCol="features", labelCol="price", maxIter=2)
+    fm = FMRegressor(featuresCol="features", labelCol="price", maxIter=1)
     model = fm.fit(train_data)
     return model, test_data
 
@@ -67,30 +68,10 @@ def evaluate_model(model, test_data):
     return rmse
 
 
-def monitor_memory(log_prefix, interval=5):
-    logger = get_logger(log_prefix + "_memory")
-    process = psutil.Process()
-    while True:
-        mem_info = process.memory_info()
-        logger.info(f'RSS: {mem_info.rss}, VMS: {mem_info.vms}')
-        time.sleep(interval)
-
-
-def memory_monitor_decorator(func):
-    def wrapper(*args, **kwargs):
-        log_prefix = kwargs.get('log_prefix', 'memory')
-        monitor_thread = Thread(target=monitor_memory, args=(log_prefix,))
-        monitor_thread.daemon = True
-        monitor_thread.start()
-        result = func(*args, **kwargs)
-        monitor_thread.join(1)
-        return result
-    return wrapper
-
-
-@memory_monitor_decorator
 def main(log_prefix: str, optimized: bool):
     logger = get_logger(log_prefix)
+    time_start = perf_counter() 
+
 
     logger.info('Starting Application...')
     spark = (SparkSession.builder
@@ -110,6 +91,11 @@ def main(log_prefix: str, optimized: bool):
 
     rmse = evaluate_model(model, test_data)
     logger.info(f'Root Mean Squared Error (RMSE) on test data = {rmse}')
+
+    time_finish = perf_counter() 
+    ram = psutil.Process().memory_info().rss / (float(1024)**2)
+    logger.info(f'Elapsed time: {time_finish - time_start}')
+    logger.info(f'Total RAM: {ram}')
 
     logger.info('Finishing!')
     spark.stop()
