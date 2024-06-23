@@ -1,0 +1,10 @@
+2024-06-23 14:58:45,395 - __main__ - INFO - Starting Application...
+2024-06-23 14:59:16,310 - __main__ - INFO - Application started!
+2024-06-23 14:59:20,426 - __main__ - INFO - Read data!
+2024-06-23 14:59:23,341 - __main__ - INFO - Processed data!
+2024-06-23 14:59:23,342 - __main__ - INFO - Training model...
+2024-06-23 15:04:31,157 - __main__ - INFO - Trained model!
+2024-06-23 15:05:01,156 - __main__ - INFO - Root Mean Squared Error (RMSE) on test data = 1017230.2096152409
+2024-06-23 15:05:01,156 - __main__ - INFO - Elapsed time: 330.66975706512574
+2024-06-23 15:05:01,156 - __main__ - INFO - Total RAM: 73.252265625 MB
+2024-06-23 15:05:01,156 - __main__ - INFO - Finishing!

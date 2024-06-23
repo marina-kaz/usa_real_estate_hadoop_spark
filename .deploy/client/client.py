@@ -13,6 +13,8 @@ from pyspark.ml.feature import (
 from tap import Tap
 from time import perf_counter
 import psutil
+import os
+import subprocess
 
 
 class CLI(Tap):
@@ -43,10 +45,10 @@ def get_logger(prefix: str):
 
 
 def get_data(spark, optimized):
-    data_path = "/opt/spark/data/usa_real_estate.csv"
+    data_path = "/hadoop/dfs/data/usa_real_estate.csv"
     df = spark.read.csv(data_path, header=True, inferSchema=True)
     if optimized:
-        df = df.repartition(4)  # Optimize by increasing partitions
+        df = df.repartition(8)
     return df
 
 
@@ -76,15 +78,15 @@ def process_data(df, optimized):
     preprocessor = pipeline.fit(df)
     processed_df = preprocessor.transform(df)
     if optimized:
-        processed_df = processed_df.cache()  # Cache the processed data
+        processed_df = processed_df.cache()
     return processed_df
 
 
 def train_model(df, optimized):
     train_data, test_data = df.randomSplit([0.8, 0.2], seed=42)
     if optimized:
-        train_data = train_data.persist()  # Persist the training data in memory
-        test_data = test_data.persist()  # Persist the test data in memory
+        train_data = train_data.cache()
+        test_data = test_data.cache()
 
     fm = FMRegressor(featuresCol="features", labelCol="price", maxIter=1)
     model = fm.fit(train_data)
@@ -98,6 +100,11 @@ def evaluate_model(model, test_data):
     )
     rmse = evaluator.evaluate(predictions)
     return rmse
+
+def run_memory_monitor(log_prefix: str):
+    pid = os.getpid()
+    command = f'python ./apps/monitor_memory.py --log-prefix {log_prefix} --pid {pid} &> /dev/null'
+    subprocess.run(command, shell=True)
 
 
 def main(log_prefix: str, optimized: bool):
@@ -132,4 +139,5 @@ def main(log_prefix: str, optimized: bool):
 
 if __name__ == "__main__":
     args = CLI(underscores_to_dashes=True).parse_args()
+    run_memory_monitor(log_prefix=args.log_prefix)
     main(log_prefix=args.log_prefix, optimized=args.optimized)
