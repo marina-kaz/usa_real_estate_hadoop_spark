@@ -20,7 +20,6 @@ services:
 
 
   spark-yarn-worker:
-    # container_name: da-spark-worker
     image: da-spark-yarn-image
     entrypoint: ['./entrypoint.sh', 'worker']
     depends_on:
@@ -28,8 +27,27 @@ services:
     env_file:
       - .env.spark
     volumes:
-      - ./spark_data:/opt/spark/data
-      - ./spark_apps:/opt/spark/apps
+      - ./hadoop_data:/opt/spark/data
+      - ./client:/opt/spark/apps
+
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    ports:
+      - 9864:9864
+    volumes:
+      - hadoop_datanode:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+    env_file:
+      - .env.spark
+    networks:
+      - hadoop-network
+    platform: linux/amd64
+    deploy:
+      resources:
+        limits:
+          memory: 4G
 
   yarn-history-server:
     container_name: da-spark-yarn-history
