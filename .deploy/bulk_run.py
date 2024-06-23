@@ -2,7 +2,7 @@ import subprocess
 
 
 UP_COMMANDS = [
-# 'docker compose up -d',
+'docker compose up -d',
 'docker compose up -d --scale spark-yarn-worker=3'
 ]
 
